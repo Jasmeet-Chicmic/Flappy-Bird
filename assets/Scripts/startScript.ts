@@ -3,24 +3,22 @@ const { ccclass, property } = _decorator;
 
 @ccclass('startScript')
 export class startScript extends Component {
-    onLoad()
-    {
+    onLoad() {
         director.preloadScene("gamePlay");
-        this.node.on(Input.EventType.TOUCH_START,this.startGame,this);
+        this.node.on(Input.EventType.TOUCH_START, this.startGame, this);
     }
     start() {
-      
 
 
-        
+
+
     }
-    startGame()
-    {
+    startGame() {
         director.loadScene('gamePlay');
     }
 
     update(deltaTime: number) {
-        
+
     }
 }
 

@@ -8,6 +8,7 @@ import {
   NodePool,
   Prefab,
   random,
+  randomRange,
   randomRangeInt,
   UITransform,
   Vec3,
@@ -37,18 +38,28 @@ export class characterController extends Component {
     this.putNodesOnNodePool();
 
   }
+  start() { this.scheduleOnce(this.scheduleCreateHurdle, 2); }
 
-  scheduleCreateHurdle() {
+  scheduleCreateHurdle = () => {
     this.createHurdle();
+    let num = randomRange(1, 3)
+
+    setTimeout(this.scheduleCreateHurdle, num * 1000)
+    // this.unschedule(this.scheduleCreateHurdle);
+    // console.log("hello");
+
+    // this.scheduleOnce(this.scheduleCreateHurdle, 3);
   }
   putNodesOnNodePool() {
     this.hurdlePool = new NodePool();
     let init = 5;
     for (let i = 0; i < init; i++) {
       let hurdleInstance = instantiate(this.hurdle);
+      hurdleInstance.name = "hurdleName"
       this.hurdlePool.put(hurdleInstance);
 
     }
+    // this.createHurdle();
     this.hurdleReRenderFlag = true;
   }
 
@@ -59,8 +70,8 @@ export class characterController extends Component {
       let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
 
       let hurdleWidth = this.hurdle_NodePool.getComponent(UITransform).width;
-      pos.x = (canvasWidth * 0.5 + hurdleWidth * 0.5)  //* randomRangeInt(1, 5);
-      pos.y = randomRangeInt(-5, 5) * 10;
+      pos.x = (canvasWidth * 0.5 + hurdleWidth * 0.5);
+      pos.y = randomRangeInt(-10, 10) * 10;
       this.hurdle_NodePool.setPosition(pos);
       this.node.getChildByName("Hurdle").addChild(this.hurdle_NodePool);
 
@@ -72,7 +83,7 @@ export class characterController extends Component {
     hurdleStart = true;
   }
 
-  start() { this.schedule(this.scheduleCreateHurdle, 0.8); }
+
 
   birdController() {
     hurdleStart = true;
@@ -121,21 +132,28 @@ export class characterController extends Component {
   hurdleMovement(deltaTime) {
     this.flappyBird.angle = -10;
     if (hurdleStart) {
-      let hurdleSize = this.node.getChildByName("Hurdle").children.length;
-      for (let i = 0; i < hurdleSize - 1; i++) {
-        let node = this.node.getChildByName("Hurdle").children[i];
-        let hurdleUp_1: Vec3 = node.getPosition();
-        hurdleUp_1.x = hurdleUp_1.x - 200 * deltaTime;
-        node.setPosition(hurdleUp_1);
-        let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+      let hurdleChildrenArray = this.node.getChildByName("Hurdle").children
+      // for (let i = 0; i < hurdleSize - 1; i++) 
+      // {
+      hurdleChildrenArray.forEach((hurdleElement) => {
+        if (hurdleElement.name == "hurdleName") {
+          let node = hurdleElement;
+          let hurdleUp_1: Vec3 = node.getPosition();
+          hurdleUp_1.x = hurdleUp_1.x - 200 * deltaTime;
+          node.setPosition(hurdleUp_1);
+          let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
 
-        let hurdleWidth = node.getComponent(UITransform).width;
-        if (node.getPosition().x < ((-1 * (canvasWidth) * 0.5)) - (hurdleWidth / 2)) {
-          this.hurdlePool.put(node);
+          let hurdleWidth = node.getComponent(UITransform).width;
+          if (node.getPosition().x < ((-1 * (canvasWidth) * 0.5)) - (hurdleWidth / 2)) {
+            this.hurdlePool.put(node);
+          }
         }
-      }
+      })
+
     }
+
   }
+
 
   update(deltaTime: number) {
     // if (this.hurdleReRenderFlag) {
