@@ -1,6 +1,7 @@
 import {
   _decorator,
   Component,
+  director,
   Input,
   instantiate,
   lerp,
@@ -11,14 +12,16 @@ import {
   randomRange,
   randomRangeInt,
   UITransform,
-  Vec3,
+  Vec3, game
 } from "cc";
 
 const { ccclass, property } = _decorator;
 let birdBounce: boolean = false;
 let hurdleStart: boolean = false;
 let birdAngle: boolean = false;
-
+let stopHurdleGeneration = false;
+let scored = 0;
+let score: number = 0;
 @ccclass("characterController")
 export class characterController extends Component {
   @property({ type: Node })
@@ -31,24 +34,25 @@ export class characterController extends Component {
   hurdle_NodePool = null;
   @property
   hurdleReRenderFlag = false;
+  @property
+  startCollisionDetector = false;
 
+  @property({ type: Node })
+  gameover: Node = null;
 
   onLoad() {
     this.node.on(Input.EventType.TOUCH_START, this.birdController, this);
+
     this.putNodesOnNodePool();
+    // director.preloadScene("Start");
+    this.node.children[4].active = false;
+    // this.gameover.on(Input.EventType.TOUCH_START, this.loadStartScene)
 
   }
-  start() { this.scheduleOnce(this.scheduleCreateHurdle, 2); }
 
-  scheduleCreateHurdle = () => {
-    this.createHurdle();
-    let num = randomRange(1, 3)
+  loadStartScene() {
 
-    setTimeout(this.scheduleCreateHurdle, num * 1000)
-    // this.unschedule(this.scheduleCreateHurdle);
-    // console.log("hello");
-
-    // this.scheduleOnce(this.scheduleCreateHurdle, 3);
+    director.loadScene("Start");
   }
   putNodesOnNodePool() {
     this.hurdlePool = new NodePool();
@@ -60,10 +64,29 @@ export class characterController extends Component {
 
     }
     // this.createHurdle();
+
     this.hurdleReRenderFlag = true;
   }
 
+  start() { this.scheduleOnce(this.scheduleCreateHurdle, 2); }
+
+  scheduleCreateHurdle = () => {
+
+
+    let num = randomRange(1, 3)
+    if (!stopHurdleGeneration) {
+      this.createHurdle();
+      setTimeout(this.scheduleCreateHurdle, num * 1000)
+    }
+
+    // this.unschedule(this.scheduleCreateHurdle);
+    // console.log("hello");
+
+    // this.scheduleOnce(this.scheduleCreateHurdle, 3);
+  }
+
   createHurdle() {
+    this.startCollisionDetector = true;
     if (this.hurdlePool.size() > 0) {
       this.hurdle_NodePool = this.hurdlePool.get();
       let pos = this.hurdle_NodePool.getPosition();
@@ -155,13 +178,71 @@ export class characterController extends Component {
   }
 
 
+  //COLLISION DETECTION
+
+  collisionDetector() {
+
+    let hurdleArray = this.node.getChildByName("Hurdle").children;
+
+    // let hurdleUpBoundingBox = this.node.getChildByName("Hurdle").getChildByName("hurdleName").getChildByName("hurdleUp").getComponent(UITransform).getBoundingBoxToWorld();
+    // let hurdleDownBoundingBox = this.node.getChildByName("Hurdle").getChildByName("hurdleName").getChildByName("hurdleDown").getComponent(UITransform).getBoundingBoxToWorld();
+    let birdBoundingBox = this.node.children[2].children[0].getComponent(UITransform).getBoundingBoxToWorld();
+    let scoreNodeBoundingBox = this.node.getChildByName("Hurdle").getChildByName("hurdleName").children[2].getComponent(UITransform).getBoundingBoxToWorld();
+
+    hurdleArray.forEach((e) => {
+      if (e.name == "hurdleName") {
+        let hurdleUpBoundingBox = e.getChildByName("hurdleUp").getComponent(UITransform).getBoundingBoxToWorld();
+        let hurdleDownBoundingBox = e.getChildByName("hurdleDown").getComponent(UITransform).getBoundingBoxToWorld();
+        if (birdBoundingBox.intersects(hurdleDownBoundingBox)) {
+          console.log("collision with Down hurdle detected");
+          // director.loadScene("GameOver");
+          this.node.children[4].active = true;
+          this.startCollisionDetector = false;
+          stopHurdleGeneration = true;
+          game.pause();
+
+
+        }
+        if (birdBoundingBox.intersects(hurdleUpBoundingBox)) {
+          console.log("collision with up hurdle detected");
+          this.node.children[4].active = true;
+          this.startCollisionDetector = false;
+          stopHurdleGeneration = true;
+          game.pause();
+
+
+        }
+
+        if (birdBoundingBox.intersects(scoreNodeBoundingBox)) {
+
+          this.node.getChildByName("Hurdle").getChildByName("hurdleName").children[2].active = false;
+          score++;
+          console.log(score);
+          // game.pause()
+
+
+
+
+
+        }
+      }
+    })
+
+
+  }
+
+
+
   update(deltaTime: number) {
     // if (this.hurdleReRenderFlag) {
     //   this.createHurdle();
     // }
+    if (this.startCollisionDetector) {
+      this.hurdleMovement(deltaTime);
+      this.goDown(deltaTime);
+    }
 
-    this.hurdleMovement(deltaTime);
-    this.goDown(deltaTime);
+    if (this.startCollisionDetector) { this.collisionDetector(); }
   }
 
 }
